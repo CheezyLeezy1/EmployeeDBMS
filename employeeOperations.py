@@ -277,7 +277,7 @@ def writePayslip(employee, hoursWorked, payRate, taxRate):
     dateCreated = date.today()
 
     # Create a payslip based on design specification, which includes employee name and date created
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/payslip" + f"{employee[1]+employee[2]}" + \
+    filename = "/{EnterFileLocationHere}/payslip" + f"{employee[1]+employee[2]}" + \
                f"{dateCreated}" + ".txt"
 
     # Calculate and get return values and variable assignment
@@ -342,7 +342,7 @@ def payrollReport():
                     name = employee[1] + employee[2]
 
                     # Create the payroll report file.
-                    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/PayrollReport-{}.txt".format(name)
+                    filename = "/{EnterFileLocationHere}/PayrollReport-{}.txt".format(name)
 
                     # Define the header for the report.
                     header = "\tEmployee ID: {:<14} | First Name: {:<15} | Last Name: {:<12}\n". \
@@ -405,7 +405,7 @@ def payrollReport():
 
 def writeToReport():
     # Creating the file, can be replaced with C:\TEMP\
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/report.txt"
+    filename = "{EnterFileLocationHere}/report.txt"
 
     # Define the Headings for the Report
     headings = "{:<12} | {:<25} | {:<30} | {:<29} | {:<15} | {:<12}| {:<12}".format(
@@ -457,7 +457,7 @@ def writeToReport():
 
 
 def exportData():
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/payroll.csv"
+    filename = "/{EnterFileLocationHere}/payroll.csv"
 
     db = bF.runDB()
 
