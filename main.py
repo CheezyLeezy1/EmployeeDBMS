@@ -67,7 +67,7 @@ def runMain():
             print("GoodBye!")
             sys.exit(1)
         else:
-            print("Invalid choice. Please enter a valid number.\n")
+            print("Invalid choice. Please enter a valid number!\n")
 
 
 if __name__ == '__main__':
