@@ -1,17 +1,9 @@
-import os
 import re
 from datetime import datetime
 
 import mysql.connector
 from _mysql_connector import MySQLInterfaceError
-from dotenv import load_dotenv
 from mysql.connector import ProgrammingError
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Access environment variable
-password = os.getenv("DB_PASSWORD")
 
 
 # This function establishes a connection to a MySQL database and returns the database object, it gets the password from
@@ -21,7 +13,7 @@ def runDB():
         host="localhost",
         user="root",
         passwd="root",
-        database="myDB"
+        database="MyDatabase"
     )
 
     return db
@@ -37,7 +29,6 @@ def checkConnection(database):
     except MySQLInterfaceError:
         printSQLInterfaceError()
         return False
-
 
     except ProgrammingError:
         printProgrammingError()

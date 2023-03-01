@@ -1,12 +1,12 @@
 import baseFunctions as bF
-from datetime import date
+from datetime import date, datetime
 
 
 # this function was created to stop the re-use of code, as it is needed throughout
 # it takes a cursor object passed in, which allows it to select based on the employeeID entered
 def quickFetchEmployee(cursor):
     employeeID = bF.checkInteger("\nPlease Enter an Employee ID: ")
-    viewCommand = "SELECT * From myDB.Employee where idEmployee = %s"
+    viewCommand = "SELECT * From MyDatabase.Employee where idEmployee = %s"
     cursor.execute(viewCommand, [employeeID])
 
     employee = cursor.fetchone()
@@ -29,17 +29,17 @@ def viewEmployee():
             bF.successMsg()
             quickFetchEmployee(cursor)
 
-            choice = bF.checkString("Would you like to view another employee? Yes/No : ").lower()
+            while True:
+                choice = bF.checkString("Would you like to view another employee? Yes/No : ").lower()
 
-            if choice.startswith("y"):
-                continue
-            elif choice.startswith("n"):
-                break
-            else:
-                print("Invalid Input.")
-
-        cursor.close()
-        db.close()
+                if choice.startswith("y"):
+                    break
+                elif choice.startswith("n"):
+                    cursor.close()
+                    db.close()
+                    return
+                else:
+                    print("Invalid Input.")
 
 
 # adds an employee by using validated variables and passing them into the cursor
@@ -57,7 +57,7 @@ def addEmployee():
             startDate = bF.checkDate("Please Enter the Employee Start Date: YYYY-MM-DD: ")
             endDate = bF.checkDate("Please Enter the Employee End Date: YYYY-MM-DD: ")
 
-            insertCommand = "INSERT INTO myDB.Employee(firstName, surname, address, email, mobile, startDate," \
+            insertCommand = "INSERT INTO MyDatabase.Employee(firstName, surname, address, email, mobile, startDate," \
                             " endDate) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
             cursor.execute(insertCommand, (firstName, lastName, address, email, mobile, startDate, endDate))
@@ -85,7 +85,7 @@ def allEmployees():
     db = bF.runDB()
     cursor = db.cursor(buffered=True)
     if bF.checkConnection(db):
-        selectAll = "SELECT * FROM myDB.Employee"
+        selectAll = "SELECT * FROM MyDatabase.Employee"
         cursor.execute(selectAll)
 
         results = cursor.fetchall()
@@ -107,32 +107,32 @@ def updateEmployee():
     if bF.checkConnection(db):
         while True:
             employee = quickFetchEmployee(cursor)
+            if employee is not None:
+                firstName = bF.checkString("Please Enter The First Name of the Employee: ")
+                lastName = bF.checkString("Please Enter The Last Name of the Employee: ")
+                address = bF.checkString("Please Enter The Home Address of the Employee: ")
+                email = bF.checkEmail("Please Enter the Email Address of the Employee: ")
+                mobile = bF.checkPhoneNumber("Please Enter the Phone Number of the Employee: ")
+                startDate = bF.checkDate("Please Enter the Employee Start Date: YYYY-MM-DD: ")
+                endDate = bF.checkDate("Please Enter the Employee End Date: YYYY-MM-DD: ")
 
-            firstName = bF.checkString("Please Enter The First Name of the Employee: ")
-            lastName = bF.checkString("Please Enter The Last Name of the Employee: ")
-            address = bF.checkString("Please Enter The Home Address of the Employee: ")
-            email = bF.checkEmail("Please Enter the Email Address of the Employee: ")
-            mobile = bF.checkPhoneNumber("Please Enter the Phone Number of the Employee: ")
-            startDate = bF.checkDate("Please Enter the Employee Start Date: YYYY-MM-DD: ")
-            endDate = bF.checkDate("Please Enter the Employee End Date: YYYY-MM-DD: ")
+                updateCommand = "UPDATE MyDatabase.Employee SET firstName = %s, surname = %s, address = %s, email = %s, " \
+                                "mobile = %s, startDate = %s, endDate = %s WHERE idEmployee = %s"
 
-            updateCommand = "UPDATE myDB.Employee SET firstName = %s, surname = %s, address = %s, email = %s, " \
-                            "mobile = %s, startDate = %s, endDate = %s WHERE idEmployee = %s"
+                cursor.execute(updateCommand, (firstName, lastName, address, email, mobile, startDate, endDate,
+                                               employee[0]))
 
-            cursor.execute(updateCommand, (firstName, lastName, address, email, mobile, startDate, endDate,
-                                           employee[0]))
+                db.commit()
+                bF.successMsg()
 
-            db.commit()
-            bF.successMsg()
+                choice = bF.checkString("Would you like to update another employee? Yes/No : ").lower()
 
-            choice = bF.checkString("Would you like to update another employee? Yes/No : ").lower()
-
-            if choice.startswith("y"):
-                continue
-            elif choice.startswith("n"):
-                break
-            else:
-                print("Invalid Input.")
+                if choice.startswith("y"):
+                    continue
+                elif choice.startswith("n"):
+                    break
+                else:
+                    print("Invalid Input.")
 
         cursor.close()
         db.close()
@@ -147,27 +147,42 @@ def deleteEmployee():
     if bF.checkConnection(db):
         while True:
             employee = quickFetchEmployee(cursor)
+            if employee is not None:
+                # Check if there are any payroll records associated with the employee
+                checkPayroll = "SELECT * FROM MyDatabase.Payroll WHERE idEmployee = %s"
+                cursor.execute(checkPayroll, [employee[0]])
+                payrollRecord = cursor.fetchone()
 
-            checkSure = bF.checkString("Are you sure you want to delete this employee? Yes/No : ").lower()
+                if payrollRecord is None:
+                    # No payroll records associated with the employee, delete the employee record
+                    checkSure = bF.checkString("Are you sure you want to delete this employee? Yes/No : ").lower()
 
-            if checkSure.startswith("y"):
-                deleteStatement = "DELETE FROM myDB.Employee where idEmployee = %s"
-                cursor.execute(deleteStatement, [employee[0]])
-                db.commit()
-                bF.successMsg()
+                    if checkSure.startswith("y"):
+                        deleteStatement = "DELETE FROM MyDatabase.Employee WHERE idEmployee = %s"
+                        cursor.execute(deleteStatement, [employee[0]])
+                        db.commit()
+                        bF.successMsg()
 
-            elif checkSure.startswith("n"):
-                print("Bringing you back to main menu...")
-                break
+                else:
+                    # Payroll records associated with the employee, cannot delete the employee record
+                    print("Cannot delete this employee record as there are payroll records associated with it."
+                          "Employee End Date will be changed to reflect the leaving date")
 
-            choice = bF.checkString("Would you like to delete another employee? Yes/No : ").lower()
+                    # Update the employee's end date to the current date
+                    updateStatement = "UPDATE MyDatabase.Employee SET EndDate = %s WHERE idEmployee = %s"
+                    currentDate = datetime.today().strftime('%Y-%m-%d')
+                    cursor.execute(updateStatement, [currentDate, employee[0]])
+                    db.commit()
+                    bF.successMsg()
 
-            if choice.startswith("y"):
-                continue
-            elif choice.startswith("n"):
-                break
-            else:
-                print("Invalid Input.")
+                choice = bF.checkString("Would you like to delete another employee? Yes/No : ").lower()
+
+                if choice.startswith("y"):
+                    continue
+                elif choice.startswith("n"):
+                    break
+                else:
+                    print("Invalid Input.")
 
         cursor.close()
         db.close()
@@ -206,7 +221,7 @@ def payrollDetails():
             dateCreated = date.today()
 
             # Create the insertPayroll string and execute it with the cursor object.
-            insertPayroll = "INSERT INTO myDB.Payroll(idEmployee, hoursWorked, payRate, taxRate, dateCreated) VALUES " \
+            insertPayroll = "INSERT INTO MyDatabase.Payroll(idEmployee, hoursWorked, payRate, taxRate, dateCreated) VALUES " \
                             "(%s, %s, %s, %s, %s)"
             cursor.execute(insertPayroll, (employee[0], hoursWorked, payRate, taxPercent, dateCreated))
 
@@ -264,12 +279,14 @@ def calcNet(grossPay, taxPaid):
 
 
 def calcTax(grossPay, taxRate):
+    if taxRate < 1:
+        taxRate = taxRate * 100
     taxPaid = grossPay * (taxRate / 100)
     return taxPaid
 
 
-def writePayslip(employee, hoursWorked, payRate, taxRate):
 
+def writePayslip(employee, hoursWorked, payRate, taxRate):
     # Makes the name into one string
     name = employee[1] + " " + employee[2]
 
@@ -277,7 +294,7 @@ def writePayslip(employee, hoursWorked, payRate, taxRate):
     dateCreated = date.today()
 
     # Create a payslip based on design specification, which includes employee name and date created
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/payslip" + f"{employee[1]+employee[2]}" + \
+    filename = "/Users/{userLocation}/PycharmProjects/EmployeeDatabase/payslip" + f"{employee[1] + employee[2]}" + \
                f"{dateCreated}" + ".txt"
 
     # Calculate and get return values and variable assignment
@@ -327,7 +344,7 @@ def payrollReport():
             if choice.startswith("y"):
 
                 # employee is automatically return thanks to quickFetchEmployee method
-                selectCommand = "SELECT * FROM myDB.Payroll WHERE myDB.Payroll.idEmployee = %s"
+                selectCommand = "SELECT * FROM MyDatabase.Payroll WHERE MyDatabase.Payroll.idEmployee = %s"
                 empID = employee[0]
 
                 cursor.execute(selectCommand, [empID])
@@ -342,7 +359,7 @@ def payrollReport():
                     name = employee[1] + employee[2]
 
                     # Create the payroll report file.
-                    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/PayrollReport-{}.txt".format(name)
+                    filename = "/Users/{userLocation}/PycharmProjects/EmployeeDatabase/PayrollReport-{}.txt".format(name)
 
                     # Define the header for the report.
                     header = "\tEmployee ID: {:<14} | First Name: {:<15} | Last Name: {:<12}\n". \
@@ -353,7 +370,7 @@ def payrollReport():
                         "Date", "Hours Worked", "Rate of Pay", "Gross Pay", "Tax Rate", "Tax Paid", "Net Pay"
                     )
 
-                    # Get todays date
+                    # Get today's date
                     today = date.today()
 
                     # Write the file, pass in headers and body
@@ -405,7 +422,7 @@ def payrollReport():
 
 def writeToReport():
     # Creating the file, can be replaced with C:\TEMP\
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/report.txt"
+    filename = "/Users/{userLocation}/PycharmProjects/EmployeeDatabase/report.txt"
 
     # Define the Headings for the Report
     headings = "{:<12} | {:<25} | {:<30} | {:<29} | {:<15} | {:<12}| {:<12}".format(
@@ -420,7 +437,7 @@ def writeToReport():
     if bF.checkConnection(db):
 
         # Select all employees from the Employee table
-        selectAll = "SELECT * FROM myDB.Employee"
+        selectAll = "SELECT * FROM MyDatabase.Employee"
         cursor.execute(selectAll)
 
         # Fetch all the results
@@ -457,16 +474,16 @@ def writeToReport():
 
 
 def exportData():
-    filename = "/Users/leecampbell/PycharmProjects/EmployeeDatabase/payroll.csv"
+    filename = "/Users/{userLocation}/PycharmProjects/EmployeeDatabase/payroll.csv"
 
     db = bF.runDB()
 
     cursor = db.cursor(buffered=True)
 
     if bF.checkConnection(db):
-        getAllCommand = "SELECT * FROM myDB.Employee, myDB.Payroll " \
-                        "WHERE myDB.Employee.idEmployee = myDB.Payroll.idEmployee " \
-                        "ORDER BY myDB.Payroll.idEmployee "
+        getAllCommand = "SELECT * FROM MyDatabase.Employee, MyDatabase.Payroll " \
+                        "WHERE MyDatabase.Employee.idEmployee = MyDatabase.Payroll.idEmployee " \
+                        "ORDER BY MyDatabase.Payroll.idEmployee "
 
         cursor.execute(getAllCommand)
         results = cursor.fetchall()
@@ -493,4 +510,3 @@ def exportData():
                 file.write("\n")
 
         print("Data exported to: ", filename)
-
